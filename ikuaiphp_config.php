@@ -4,7 +4,7 @@ return [
     "url"=>"http://192.168.137.3", //结尾不要带/
     "username"=> "admin",
     "password"=> "",
-    "ssl_key_path"=> "", //不在当前文件同级目录 就把__DIR__删掉 写绝对路径 并且设置好读取权限
+    "ssl_key_path"=> "", //不在当前文件同级目录  写绝对路径 并且设置好读取权限
     "ssl_cert_path"=> "",
     "ip-group"=>[ //IP分组 和端口分流配合使用
 //        [
