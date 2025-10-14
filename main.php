@@ -531,7 +531,7 @@ try {
         if(!is_array($update_cert_status)){
             msg('----'.$update_cert_status.'，跳过更新证书','warning');
         }else{
-            msg("----证书更新成功！",'success');
+            msg("----证书更新成功！返回状态：".$update_cert_status['ErrMsg'],'success');
         }
 
     }else{
