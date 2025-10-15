@@ -41,7 +41,7 @@ return [
             "url"=>"https://api.whzxc.cn/tiktok"
         ],
         [
-            "name"=>"akamai",
+            "name"=>"akamaius",
             "url"=>"https://api.whzxc.cn/akamai"
         ],
         [
@@ -155,7 +155,7 @@ return [
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
             "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
-            "dst_addr"=>"akamai,tiktok",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
+            "dst_addr"=>"akamaius,tiktok",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
             "time"=>"00:00-23:59"   #生效时间
