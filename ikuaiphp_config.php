@@ -126,7 +126,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"中国",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
@@ -140,7 +140,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"鹏博士,联通,移动",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
@@ -154,7 +154,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"akamai,tiktok",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
@@ -168,7 +168,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"自定义美国",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
@@ -182,7 +182,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"自定义电信",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
@@ -196,7 +196,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"119.29.29.29,223.5.5.5",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
@@ -210,7 +210,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"8.8.8.8,8.8.4.4",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
@@ -224,7 +224,7 @@ return [
             "mode"=>0,              #在type=0时 可改， 负载模式，0-新建连接数， 1-源IP， 2-源IP+源端口，3-源IP+目的IP，4-源IP+目的IP+目的端口，6-主备模式
             "protocol"=>"any",      #协议 参数选择可以有： any tcp udp tcp+udp icmp
             "src_addr"=>"",         # 分流的源地址   为空就代表全部，可以填写ip 、cidr、分组名
-            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
+            "src_port"=>"",         #在protocol 不是any或者icmp的时候可填 源端口
             "dst_addr"=>"1.1.1.1,1.0.0.1",         # 分流的目的地址  为空就代表全部，可以填写ip 、cidr、分组名
             "dst_port"=>"",         #在protocol 不是any或者icmp的时候可填 目的端口
             "week"=>"1234567",      #生效周期 星期几
