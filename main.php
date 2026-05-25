@@ -155,7 +155,6 @@ function mapAddresses($addr_string, $group_name_map) {
     foreach ($items as $item) {
         $item = trim($item);
         if (empty($item)) continue;
-        // 如果配置的名称在映射表里，自动展开为带有 _0, _1 的真实名称
         if (isset($group_name_map[$item])) {
             $result = array_merge($result, $group_name_map[$item]);
         } else {
@@ -163,18 +162,6 @@ function mapAddresses($addr_string, $group_name_map) {
         }
     }
     return implode(',', $result);
-}
-
-// 专门用于批量清理自动化规则的函数
-function cleanupOldRules($action_url, $session_key, $del_key, $module) {
-    $old_data = general($action_url, $session_key, 'show', $module, ['limit'=>'0,1000']);
-    if(issett($old_data['Data']['data'])){
-        foreach($old_data['Data']['data'] as $v){
-            if(isset($v['comment']) && $v['comment'] === $del_key){
-                general($action_url, $session_key, 'del', $module, ['id' => $v['id']]);
-            }
-        }
-    }
 }
 
 // ====================== 主逻辑开始 ======================
@@ -265,28 +252,49 @@ try {
 
     msg("所有数据预检通过！进入安全重建流程。", 'success');
 
-    // ================= [Phase 2] 安全清理并重写 IP 分组 =================
-    msg("-- 正在清理旧 IP 分组...");
-    cleanupOldRules($action_url, $session_key, $del_key, 'ipgroup');
-    cleanupOldRules($action_url, $session_key, $del_key, 'ipv6group');
+    // ================= [Phase 2] 原地编辑 IP 分组 (保护手动规则引用) =================
+    msg("-- 正在更新静态 IP 分组...");
+    
+    $group_name_map = []; 
+    $used_v4_ids = [];    
+    $used_v6_ids = [];
 
-    $group_name_map = []; // 用于自动化路由分流查表 
+    // 读取现存 IP 分组用于判断是 edit 还是 add
+    $existing_v4 = general($action_url, $session_key, 'show', 'ipgroup', ['limit'=>'0,1000']);
+    $v4_map = [];
+    if(issett($existing_v4['Data']['data'])){
+        foreach($existing_v4['Data']['data'] as $v) {
+            if(isset($v['comment']) && $v['comment'] === $del_key) $v4_map[$v['group_name']] = $v['id'];
+        }
+    }
+
+    $existing_v6 = general($action_url, $session_key, 'show', 'ipv6group', ['limit'=>'0,1000']);
+    $v6_map = [];
+    if(issett($existing_v6['Data']['data'])){
+        foreach($existing_v6['Data']['data'] as $v) {
+            if(isset($v['comment']) && $v['comment'] === $del_key) $v6_map[$v['group_name']] = $v['id'];
+        }
+    }
 
     // 写入 IPv4
     foreach ($prepared_ipv4 as $item) {
         $original_name = trim($item['group']['name']);
-        // 核心保护：截取前 6 个字符防止超长。加上 _0 绝对不超过 20 字节。
-        $safe_prefix = mb_substr($original_name, 0, 6); 
+        $safe_prefix = mb_substr($original_name, 0, 6); // 保证绝对安全长度
         $group_name_map[$original_name] = [];
         
         foreach (array_chunk($item['ips'], 999) as $kip => $ip){
-            $w_gn = $safe_prefix . "_" . $kip; // 生成如: 中国_0, 中国_1
+            $w_gn = $safe_prefix . "_" . $kip;
             $group_name_map[$original_name][] = $w_gn;
 
-            general($action_url, $session_key, 'add', 'ipgroup', [
-                'type' => 0, 'newRow' => true, 'group_name' => $w_gn,
-                'comment' => $del_key, 'addr_pool' => implode(',', $ip)
-            ]);
+            $param = ['group_name' => $w_gn, 'comment' => $del_key, 'addr_pool' => implode(',', $ip)];
+            if (isset($v4_map[$w_gn])) {
+                $param['id'] = $v4_map[$w_gn];
+                general($action_url, $session_key, 'edit', 'ipgroup', $param);
+                $used_v4_ids[] = $v4_map[$w_gn];
+            } else {
+                $param['type'] = 0; $param['newRow'] = true;
+                general($action_url, $session_key, 'add', 'ipgroup', $param);
+            }
         }
     }
 
@@ -300,41 +308,125 @@ try {
             $w_gn = $safe_prefix . "_" . $kip;
             $group_name_map[$original_name][] = $w_gn;
 
-            general($action_url, $session_key, 'add', 'ipv6group', [
-                'type' => 0, 'newRow' => true, 'group_name' => $w_gn,
-                'comment' => $del_key, 'addr_pool' => implode(',', $ip)
-            ]);
+            $param = ['group_name' => $w_gn, 'comment' => $del_key, 'addr_pool' => implode(',', $ip)];
+            if (isset($v6_map[$w_gn])) {
+                $param['id'] = $v6_map[$w_gn];
+                general($action_url, $session_key, 'edit', 'ipv6group', $param);
+                $used_v6_ids[] = $v6_map[$w_gn];
+            } else {
+                $param['type'] = 0; $param['newRow'] = true;
+                general($action_url, $session_key, 'add', 'ipv6group', $param);
+            }
         }
     }
 
-    // ================= [Phase 3] 安全清理并重写 分流规则 =================
-    if(issett($config['stream-ipport'])){
-        msg('--正在重建端口分流...');
-        cleanupOldRules($action_url, $session_key, $del_key, 'stream_ipport');
 
+    // ================= [Phase 3] 保持优先级的内存重排与写入 =================
+    
+    // -- 处理端口分流 --
+    if(issett($config['stream-ipport'])){
+        msg('--正在重构端口分流 (绝对优先级保持模式)...');
+        
+        // 组装最新需要添加的自动规则
+        $need_add = [];
         foreach ($config['stream-ipport'] as $group){
             if(!empty($group['src_addr'])) $group['src_addr'] = mapAddresses($group['src_addr'], $group_name_map);
             if(!empty($group['dst_addr'])) $group['dst_addr'] = mapAddresses($group['dst_addr'], $group_name_map);
-            
             $group['comment'] = $del_key;
             if($group['protocol'] == 'any' || $group['protocol'] == 'icmp'){
                 $group['src_port'] = ""; $group['dst_port'] = "";
             }
-            general($action_url, $session_key, 'add', 'stream_ipport', $group);
+            $need_add[] = $group;
+        }
+
+        $old_stream = general($action_url, $session_key, 'show', 'stream_ipport', ['limit'=>'0,1000']);
+        $original_rules = $old_stream['Data']['data'] ?? [];
+
+        // 核心：在内存中重排，自动寻找旧自动规则的“坑位”，将新规则原封不动塞进去
+        $final_list = [];
+        $new_rules_inserted = false;
+        foreach ($original_rules as $old_rule) {
+            if (isset($old_rule['comment']) && $old_rule['comment'] === $del_key) {
+                if (!$new_rules_inserted) {
+                    $final_list = array_merge($final_list, $need_add);
+                    $new_rules_inserted = true;
+                }
+            } else {
+                unset($old_rule['id']); // 删除旧ID用于重新写入
+                $final_list[] = $old_rule;
+            }
+        }
+        // 如果路由器里本来一条自动规则都没有，那就追加到最后
+        if (!$new_rules_inserted) $final_list = array_merge($final_list, $need_add);
+
+        // 带回滚事务的重新写入
+        if (!empty($original_rules) || !empty($final_list)) {
+            try {
+                foreach($original_rules as $old_v) general($action_url, $session_key, 'del', 'stream_ipport', ['id' => $old_v['id']]);
+                foreach ($final_list as $item) general($action_url, $session_key, 'add', 'stream_ipport', $item);
+            } catch (Exception $e) {
+                msg("端口分流写入异常，正在触发紧急回滚...", 'error');
+                $curr = general($action_url, $session_key, 'show', 'stream_ipport', ['limit'=>'0,1000']);
+                foreach($curr['Data']['data'] ?? [] as $v) general($action_url, $session_key, 'del', 'stream_ipport', ['id' => $v['id']]);
+                foreach($original_rules as $old_v) { unset($old_v['id']); @general($action_url, $session_key, 'add', 'stream_ipport', $old_v); }
+                throw new Exception("端口分流已回滚，中止执行: " . $e->getMessage());
+            }
         }
     }
 
+    // -- 处理域名分流 --
     if(!empty($add_stream_domain_data)){
-        msg('--正在重建域名分流...');
-        cleanupOldRules($action_url, $session_key, $del_key, 'stream_domain');
-
-        foreach ($add_stream_domain_data as $d_group) {
+        msg('--正在重构域名分流 (绝对优先级保持模式)...');
+        
+        foreach ($add_stream_domain_data as &$d_group) {
             if(!empty($d_group['src_addr'])) $d_group['src_addr'] = mapAddresses($d_group['src_addr'], $group_name_map);
-            general($action_url, $session_key, 'add', 'stream_domain', $d_group);
+        }
+        unset($d_group);
+
+        $old_domain = general($action_url, $session_key, 'show', 'stream_domain', ['limit'=>'0,1000']);
+        $original_domain_rules = $old_domain['Data']['data'] ?? [];
+
+        $final_domain_list = [];
+        $new_domain_inserted = false;
+        foreach ($original_domain_rules as $old_rule) {
+            if (isset($old_rule['comment']) && $old_rule['comment'] === $del_key) {
+                if (!$new_domain_inserted) {
+                    $final_domain_list = array_merge($final_domain_list, $add_stream_domain_data);
+                    $new_domain_inserted = true;
+                }
+            } else {
+                unset($old_rule['id']); 
+                $final_domain_list[] = $old_rule;
+            }
+        }
+        if (!$new_domain_inserted) $final_domain_list = array_merge($final_domain_list, $add_stream_domain_data);
+
+        if (!empty($original_domain_rules) || !empty($final_domain_list)) {
+            try {
+                foreach($original_domain_rules as $old_v) general($action_url, $session_key, 'del', 'stream_domain', ['id' => $old_v['id']]);
+                foreach ($final_domain_list as $item) general($action_url, $session_key, 'add', 'stream_domain', $item);
+            } catch (Exception $e) {
+                msg("域名分流写入异常，正在触发紧急回滚...", 'error');
+                $curr = general($action_url, $session_key, 'show', 'stream_domain', ['limit'=>'0,1000']);
+                foreach($curr['Data']['data'] ?? [] as $v) general($action_url, $session_key, 'del', 'stream_domain', ['id' => $v['id']]);
+                foreach($original_domain_rules as $old_v) { unset($old_v['id']); @general($action_url, $session_key, 'add', 'stream_domain', $old_v); }
+                throw new Exception("域名分流已回滚，中止执行: " . $e->getMessage());
+            }
         }
     }
 
-    msg("🎉 所有配置完美更新！组名已回归极致简洁可预期状态！", 'success');
+    // ================= [Phase 4] 尾部垃圾清理 =================
+    // 清理那些因为源列表缩短（例如昨天是 _0 到 _3，今天只有 _0 到 _2）而多出来的废弃静态分组
+    msg("-- 开始清理尾巴遗留 IP 组 --");
+    
+    foreach ($v4_map as $name => $id) {
+        if (!in_array($id, $used_v4_ids)) general($action_url, $session_key, 'del', 'ipgroup', ['id' => $id]);
+    }
+    foreach ($v6_map as $name => $id) {
+        if (!in_array($id, $used_v6_ids)) general($action_url, $session_key, 'del', 'ipv6group', ['id' => $id]);
+    }
+
+    msg("🎉 所有配置完美更新！排序优先级与原配置丝毫不差！", 'success');
 
 } catch (Exception $e) {
     msg("阻断性异常: " . $e->getMessage(), 'error');
