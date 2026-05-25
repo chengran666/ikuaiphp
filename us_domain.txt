@@ -1,3 +1,12 @@
 zenshop.cn
 oemapps.com
 shopoem.cn
+openai.com
+chatgpt.com
+oaistatic.com
+oaiusercontent.com
+auth0.com
+cloudflare.com
+ai.com
+sentry.io
+intercom.io
